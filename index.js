@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require('dotenv').config()
+const { MongoClient, ServerApiVersion } = require('mongodb');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -11,7 +12,6 @@ app.use(express.json());
 
 //mongodb connect:
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kpjgmam.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -28,6 +28,13 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
 
+        // collections 
+        const usersCollection = client.db("speakEaseDb").collection("users");
+        const instructorsCollection = client.db('speakEaseDb').collection('instructors')
+        const classesCollection = client.db('speakEaseDb').collection('classes')
+        const selectedClassesCollection = client.db('speakEaseDb').collection('selectedClasses')
+
+        // users related apis
 
 
 
@@ -47,9 +54,9 @@ run().catch(console.dir);
 
 // basic server running check :
 app.get("/", (req, res) => {
-    res.send("Summer camp school server is running...");
+    res.send("Speak Ease server is running...");
 })
 
 app.listen(port, () => {
-    console.log(`Summer camp school server is running on port:${port}`);
+    console.log(`Speak Ease server is running on port:${port}`);
 })
