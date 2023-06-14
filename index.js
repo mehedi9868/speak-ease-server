@@ -35,6 +35,41 @@ async function run() {
         const selectedClassesCollection = client.db('speakEaseDb').collection('selectedClasses')
 
         // users related apis
+        app.get('/current-user', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email }
+            const result = await usersCollection.findOne(query)
+            res.send(result)
+        })
+        app.get('/all-users', async (req, res) => {
+            const result = await usersCollection.find().toArray()
+            res.send(result)
+        })
+
+        app.post('/all-users', async (req, res) => {
+            const user = req.body;
+            const query = { email: user?.email }
+            const existingUser = await usersCollection.findOne(query);
+            if (existingUser) {
+                return res.send({})
+            }
+            const result = await usersCollection.insertOne(user)
+            res.send(result)
+        })
+
+        app.put('/all-users/:id', async (req, res) => {
+            const id = req.params.id;
+            const role = req.query.role;
+            const query = { _id: new ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    role: role
+                }
+            }
+            const result = await usersCollection.updateOne(query, updatedDoc)
+            res.send(result)
+        })
+
         // class related apis:
         app.get('/all-classes', async (req, res) => {
             const result = await classesCollection.find().toArray()
