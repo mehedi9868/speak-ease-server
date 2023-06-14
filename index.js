@@ -29,18 +29,131 @@ async function run() {
         await client.connect();
 
         // collections 
-        const userCollection = client.db("speakEaseDb").collection("users");
-        const instructorsCollection = client.db('speakEaseDb').collection('instructors')
-        const classesCollection = client.db('speakEaseDb').collection('classes')
-        const selectedClassCollection = client.db('speakEaseDb').collection('selectedClasses')
-        const enrolledClassCollection = client.db('speakEaseDb').collection('enrolledClasses')
-        const paymentCollection = client.db('speakEaseDb').collection('payments')
+        const userCollection = client.db('speakEaseDb').collection('users');
+        const classCollection = client.db('speakEaseDb').collection('classes');
+        const selectedClassCollection = client.db('speakEaseDb').collection('selectedClasses');
+        const enrolledClassCollection = client.db('speakEaseDb').collection('enrolledClasses');
+        const paymentCollection = client.db('speakEaseDb').collection('payments');
 
-        const classCollection = client.db('MindFulness').collection('allClasses')
 
-        const arrivingClassCollection = client.db('MindFulness').collection('arrivingClasses')
+        //class related apis:
+        app.get('/all-classes', async (req, res) => {
+            const result = await classCollection.find().sort({ date: -1 }).toArray()
+            res.send(result)
+        })
+        app.get('/all-classes/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { instructorEmail: email }
+            const result = await classCollection.find(query).toArray()
+            res.send(result)
+        })
+        app.get('/approved-all-classes', async (req, res) => {
+            const query = { status: 'Approved' }
+            const result = await classCollection.find(query).toArray()
+            res.send(result)
+        })
+        app.get('/popular-classes', async (req, res) => {
+            const query = { status: 'Approved' }
+            const result = await classCollection.find(query).sort({ enrolledStudents: -1 }).toArray()
+            res.send(result)
+        })
 
-        // users related apis
+        app.post('/all-classes', async (req, res) => {
+            const classes = req.body
+            const result = await classCollection.insertOne(classes)
+            res.send(result)
+        })
+
+        app.put('/all-classes/:id', async (req, res) => {
+            const id = req.params.id;
+            const status = req.query.status;
+            const feedback = req.query.feedback;
+            if (status === 'approved') {
+                const query = { _id: new ObjectId(id) }
+                const updatedDoc = {
+                    $set: {
+                        status: 'Approved'
+                    }
+                }
+                const result = await classCollection.updateOne(query, updatedDoc)
+                res.send(result)
+            }
+            if (status === 'denied') {
+                const query = { _id: new ObjectId(id) }
+                const updatedDoc = {
+                    $set: {
+                        status: 'Denied'
+                    }
+                }
+                const result = await classCollection.updateOne(query, updatedDoc)
+                res.send(result)
+            }
+            if (feedback) {
+                const query = { _id: new ObjectId(id) }
+                const updatedDoc = {
+                    $set: {
+                        feedback: feedback
+                    }
+                }
+                const result = await classCollection.updateOne(query, updatedDoc)
+                res.send(result)
+            }
+        })
+
+        // selected class related apis:
+        app.get('/selected-classes', async (req, res) => {
+            const email = req.query.email;
+            const query = { studentEmail: email }
+            const result = await selectedClassCollection.find(query).toArray()
+            res.send(result)
+        })
+        app.get('/selected-class/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await selectedClassCollection.findOne(query)
+            res.send(result)
+        })
+
+        app.post('/selected-class', async (req, res) => {
+            const selectedClass = req.body;
+            const result = await selectedClassCollection.insertOne(selectedClass)
+            res.send(result)
+        })
+
+        app.delete('/selected-classes/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await selectedClassCollection.deleteOne(query)
+            res.send(result)
+        })
+
+        // enrolled class related apis:
+        app.get('/enrolled-classes/:email', async (req, res) => {
+            const email = req.params.email
+            const query = { studentEmail: email }
+            const result = await enrolledClassCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        //users related apis:
+        app.get('/user/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email, role: 'admin' }
+            const admin = await userCollection.findOne(query)
+            res.send(admin)
+        })
+        app.get('/user/instructor/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email, role: 'instructor' }
+            const instructor = await userCollection.findOne(query)
+            res.send(instructor)
+        })
+        app.get('/user/student/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email, role: 'student' }
+            const student = await userCollection.findOne(query)
+            res.send(student)
+        })
         app.get('/current-user', async (req, res) => {
             const email = req.query.email;
             const query = { email: email }
@@ -49,6 +162,16 @@ async function run() {
         })
         app.get('/all-users', async (req, res) => {
             const result = await userCollection.find().toArray()
+            res.send(result)
+        })
+        app.get('/all-instructors', async (req, res) => {
+            const query = { role: 'instructor' }
+            const result = await userCollection.find(query).toArray()
+            res.send(result)
+        })
+        app.get('/popular-instructors', async (req, res) => {
+            const query = { role: 'instructor' }
+            const result = await userCollection.find(query).toArray()
             res.send(result)
         })
 
@@ -76,86 +199,14 @@ async function run() {
             res.send(result)
         })
 
-        // instractors related apis:
-        app.get('/instructors', async (req, res) => {
-            const result = await instructorsCollection.find().toArray()
-            res.send(result)
-        })
-
-        // class related apis:
-        app.get('/all-classes', async (req, res) => {
-            const result = await classesCollection.find().toArray()
-            res.send(result)
-        })
-        app.get('/all-classes', async (req, res) => {
+        //payment related apis:
+        app.get('/payment-history', async (req, res) => {
             const email = req.query.email;
-            const query = { instructorEmail: email }
-            const result = await classesCollection.find(query).toArray()
+            const query = { email: email }
+            const result = await paymentCollection.find(query).sort({ date: -1 }).toArray()
             res.send(result)
         })
 
-        app.post('/all-classes', async (req, res) => {
-            const classes = req.body
-            const result = await classesCollection.insertOne(classes)
-            res.send(result)
-        })
-
-        // selected class related apis:
-        app.post('/selected-classes', async (req, res) => {
-            const selectedClass = req.body;
-            const result = await selectedClassCollection.insertOne(selectedClass)
-            res.send(result)
-        })
-        app.get('/selected-classes', async (req, res) => {
-            const email = req.query.email;
-            const query = { studentEmail: email }
-            const result = await selectedClassCollection.find(query).toArray()
-            res.send(result)
-        })
-        app.delete('/selected-classes/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) }
-            const result = await selectedClassCollection.deleteOne(query)
-            res.send(result)
-        })
-
-        app.put('/all-classes/:id', async (req, res) => {
-            const id = req.params.id;
-            const status = req.query.status;
-            const feedback = req.query.feedback;
-            if (status == 'approved') {
-                const query = { _id: new ObjectId(id) }
-                const updatedDoc = {
-                    $set: {
-                        status: 'Approved'
-                    }
-                }
-                const result = await classesCollection.updateOne(query, updatedDoc)
-                res.send(result)
-            }
-            if (status == 'denied') {
-                const query = { _id: new ObjectId(id) }
-                const updatedDoc = {
-                    $set: {
-                        status: 'Denied'
-                    }
-                }
-                const result = await classesCollection.updateOne(query, updatedDoc)
-                res.send(result)
-            }
-            if (feedback) {
-                const query = { _id: new ObjectId(id) }
-                const updatedDoc = {
-                    $set: {
-                        feedback: feedback
-                    }
-                }
-                const result = await classesCollection.updateOne(query, updatedDoc)
-                res.send(result)
-            }
-        })
-
-        // payment related apis:
         app.post("/create-payment-intent", async (req, res) => {
             const { price } = req.body;
             const amount = Math.round(price * 100);
@@ -202,12 +253,7 @@ async function run() {
                 res.send({ insertResult, updateResult, enrolledDeleteResult, enrolledInsertResult });
             }
         });
-        app.get('/payment-history', async (req, res) => {
-            const email = req.query.email;
-            const query = { email: email }
-            const result = await paymentCollection.find(query).sort({ date: -1 }).toArray()
-            res.send(result)
-        })
+
 
 
 
