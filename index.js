@@ -29,33 +29,37 @@ async function run() {
         await client.connect();
 
         // collections 
-        const usersCollection = client.db("speakEaseDb").collection("users");
+        const userCollection = client.db("speakEaseDb").collection("users");
         const instructorsCollection = client.db('speakEaseDb').collection('instructors')
         const classesCollection = client.db('speakEaseDb').collection('classes')
-        const selectedClassesCollection = client.db('speakEaseDb').collection('selectedClasses')
+        const selectedClassCollection = client.db('speakEaseDb').collection('selectedClasses')
+        const enrolledClassCollection = client.db('speakEaseDb').collection('enrolledClasses')
         const paymentCollection = client.db('speakEaseDb').collection('payments')
 
+        const classCollection = client.db('MindFulness').collection('allClasses')
+
+        const arrivingClassCollection = client.db('MindFulness').collection('arrivingClasses')
 
         // users related apis
         app.get('/current-user', async (req, res) => {
             const email = req.query.email;
             const query = { email: email }
-            const result = await usersCollection.findOne(query)
+            const result = await userCollection.findOne(query)
             res.send(result)
         })
         app.get('/all-users', async (req, res) => {
-            const result = await usersCollection.find().toArray()
+            const result = await userCollection.find().toArray()
             res.send(result)
         })
 
         app.post('/all-users', async (req, res) => {
             const user = req.body;
             const query = { email: user?.email }
-            const existingUser = await usersCollection.findOne(query);
+            const existingUser = await userCollection.findOne(query);
             if (existingUser) {
                 return res.send({})
             }
-            const result = await usersCollection.insertOne(user)
+            const result = await userCollection.insertOne(user)
             res.send(result)
         })
 
@@ -68,7 +72,7 @@ async function run() {
                     role: role
                 }
             }
-            const result = await usersCollection.updateOne(query, updatedDoc)
+            const result = await userCollection.updateOne(query, updatedDoc)
             res.send(result)
         })
 
@@ -99,19 +103,19 @@ async function run() {
         // selected class related apis:
         app.post('/selected-classes', async (req, res) => {
             const selectedClass = req.body;
-            const result = await selectedClassesCollection.insertOne(selectedClass)
+            const result = await selectedClassCollection.insertOne(selectedClass)
             res.send(result)
         })
         app.get('/selected-classes', async (req, res) => {
             const email = req.query.email;
             const query = { studentEmail: email }
-            const result = await selectedClassesCollection.find(query).toArray()
+            const result = await selectedClassCollection.find(query).toArray()
             res.send(result)
         })
         app.delete('/selected-classes/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
-            const result = await selectedClassesCollection.deleteOne(query)
+            const result = await selectedClassCollection.deleteOne(query)
             res.send(result)
         })
 
