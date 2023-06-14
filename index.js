@@ -35,7 +35,27 @@ async function run() {
         const selectedClassesCollection = client.db('speakEaseDb').collection('selectedClasses')
 
         // users related apis
-
+        // class related apis:
+        app.get('/all-classes', async (req, res) => {
+            const result = await classesCollection.find().toArray()
+            res.send(result)
+        })
+        app.get('/all-classes', async (req, res) => {
+            const email = req.query.email;
+            const query = { instructorEmail: email }
+            const result = await classesCollection.find(query).toArray()
+            res.send(result)
+        })
+        app.post('/all-classes', async (req, res) => {
+            const classes = req.body
+            const result = await classesCollection.insertOne(classes)
+            res.send(result)
+        })
+        app.post('/selected-classes', async (req, res) => {
+            const selectedClass = req.body;
+            const result = await selectedClassesCollection.insertOne(selectedClass)
+            res.send(result)
+        })
 
 
 
