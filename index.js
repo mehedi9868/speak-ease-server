@@ -70,6 +70,12 @@ async function run() {
             res.send(result)
         })
 
+        // instractors related apis:
+        app.get('/instructors', async (req, res) => {
+            const result = await instructorsCollection.find().toArray()
+            res.send(result)
+        })
+
         // class related apis:
         app.get('/all-classes', async (req, res) => {
             const result = await classesCollection.find().toArray()
