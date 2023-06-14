@@ -33,6 +33,8 @@ async function run() {
         const instructorsCollection = client.db('speakEaseDb').collection('instructors')
         const classesCollection = client.db('speakEaseDb').collection('classes')
         const selectedClassesCollection = client.db('speakEaseDb').collection('selectedClasses')
+        const paymentCollection = client.db('speakEaseDb').collection('payments')
+
 
         // users related apis
         app.get('/current-user', async (req, res) => {
@@ -93,6 +95,8 @@ async function run() {
             const result = await classesCollection.insertOne(classes)
             res.send(result)
         })
+
+        // selected class related apis:
         app.post('/selected-classes', async (req, res) => {
             const selectedClass = req.body;
             const result = await selectedClassesCollection.insertOne(selectedClass)
@@ -101,13 +105,13 @@ async function run() {
         app.get('/selected-classes', async (req, res) => {
             const email = req.query.email;
             const query = { studentEmail: email }
-            const result = await selectedCollection.find(query).toArray()
+            const result = await selectedClassesCollection.find(query).toArray()
             res.send(result)
         })
         app.delete('/selected-classes/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
-            const result = await selectedCollection.deleteOne(query)
+            const result = await selectedClassesCollection.deleteOne(query)
             res.send(result)
         })
 
@@ -145,6 +149,60 @@ async function run() {
                 const result = await classesCollection.updateOne(query, updatedDoc)
                 res.send(result)
             }
+        })
+
+        // payment related apis:
+        app.post("/create-payment-intent", async (req, res) => {
+            const { price } = req.body;
+            const amount = Math.round(price * 100);
+            const stripeClient = stripe(process.env.STRIPE_KEY);
+            try {
+                // Create a PaymentIntent with the order amount and currency
+                const paymentIntent = await stripeClient.paymentIntents.create({
+                    amount: amount,
+                    currency: "usd",
+                    automatic_payment_methods: {
+                        enabled: true,
+                    },
+                });
+
+                res.send({
+                    clientSecret: paymentIntent.client_secret,
+                });
+            } catch (error) {
+                console.log(error);
+                res.status(500).send({ error: "An error occurred while creating the PaymentIntent." });
+            }
+        });
+        app.post('/payment', async (req, res) => {
+            const payment = req.body;
+            const insertResult = await paymentCollection.insertOne(payment);
+
+            const enrolledQuery = { studentEmail: payment.email, classId: payment.classId }
+            const enrolledClass = await selectedClassCollection.findOne(enrolledQuery)
+            const enrolledInsertResult = await enrolledClassCollection.insertOne(enrolledClass)
+
+            const enrolledDeleteResult = await selectedClassCollection.deleteOne(enrolledQuery)
+
+            const classQuery = { _id: new ObjectId(payment.classId) };
+            const classDocument = await classCollection.findOne(classQuery); // Fetch the latest document
+
+            if (classDocument && classDocument.seats > 0) {
+                const updatedSeats = classDocument.seats - 1;
+                const updateEnrolledStudents = classDocument.enrolledStudents + 1;
+                const updateResult = await classCollection.updateOne(
+                    classQuery,
+                    { $set: { seats: updatedSeats, enrolledStudents: updateEnrolledStudents } }
+                );
+
+                res.send({ insertResult, updateResult, enrolledDeleteResult, enrolledInsertResult });
+            }
+        });
+        app.get('/payment-history', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email }
+            const result = await paymentCollection.find(query).sort({ date: -1 }).toArray()
+            res.send(result)
         })
 
 
