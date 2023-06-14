@@ -46,6 +46,7 @@ async function run() {
             const result = await classesCollection.find(query).toArray()
             res.send(result)
         })
+
         app.post('/all-classes', async (req, res) => {
             const classes = req.body
             const result = await classesCollection.insertOne(classes)
@@ -55,6 +56,42 @@ async function run() {
             const selectedClass = req.body;
             const result = await selectedClassesCollection.insertOne(selectedClass)
             res.send(result)
+        })
+
+        app.put('/all-classes/:id', async (req, res) => {
+            const id = req.params.id;
+            const status = req.query.status;
+            const feedback = req.query.feedback;
+            if (status == 'approved') {
+                const query = { _id: new ObjectId(id) }
+                const updatedDoc = {
+                    $set: {
+                        status: 'Approved'
+                    }
+                }
+                const result = await classesCollection.updateOne(query, updatedDoc)
+                res.send(result)
+            }
+            if (status == 'denied') {
+                const query = { _id: new ObjectId(id) }
+                const updatedDoc = {
+                    $set: {
+                        status: 'Denied'
+                    }
+                }
+                const result = await classesCollection.updateOne(query, updatedDoc)
+                res.send(result)
+            }
+            if (feedback) {
+                const query = { _id: new ObjectId(id) }
+                const updatedDoc = {
+                    $set: {
+                        feedback: feedback
+                    }
+                }
+                const result = await classesCollection.updateOne(query, updatedDoc)
+                res.send(result)
+            }
         })
 
 
